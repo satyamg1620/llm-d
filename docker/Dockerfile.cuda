@@ -391,8 +391,12 @@ ARG VLLM_COMMIT_SHA="b8b302cde434df8c9289a2b465406b47ebab1c2d"
 =======
 ARG VLLM_REPO="https://github.com/david6666666/vllm.git"
 ARG VLLM_OFFICIAL_RELEASE_COMMIT="f71952c1c49fb86686b0b300b727b26282362bf4"
+<<<<<<< HEAD
 ARG VLLM_COMMIT_SHA="e9fd1baad6d82b964ac78490b9ee03910b939e6b"
 >>>>>>> e6e63d4 (image build + deployment manifest changes)
+=======
+ARG VLLM_COMMIT_SHA="60e419c1eeef90425acbd6d34bfadf4202707507"
+>>>>>>> 9f92ecb (newer base image commit missing a kernel)
 
 # Dictates if we should pull a production wheel for the vllm commit sha
 ARG VLLM_PREBUILT=0
