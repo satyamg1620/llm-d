@@ -62,6 +62,7 @@ spec:
                 Qwen/Qwen3-235B-A22B-Instruct-2507-FP8 \
                 --port 8000 \
                 --trust-remote-code \
+                --enforce-eager \
                 --disable-uvicorn-access-log \
                 --data-parallel-hybrid-lb \
                 --enable-expert-parallel \
@@ -74,16 +75,8 @@ spec:
                 --kv_transfer_config '{"kv_connector":"NixlConnector",
                                         "kv_role":"kv_both"}' \
                 --async-scheduling \
-                --enable-dbo \
-                --dbo-prefill-token-threshold 32 \
-                --enable-eplb \
-                --eplb-config '{"window_size":"1000",
-                                "step_interval":"3000",
-                                "num_redundant_experts":"32",
-                                "log_balancedness":"False",
-                                "use_async":"True"}' \
+                --eplb-config '{"use_async":"False"}' \
                 --gpu-memory-utilization 0.75
-
           env:
           - name: DP_SIZE_LOCAL
             value: "8"
