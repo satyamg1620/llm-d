@@ -188,6 +188,15 @@ jobs:
           pattern: digests-cuda-*
           merge-multiple: true
 
+      - name: Debug digest files
+        run: |
+          echo "=== Contents of /tmp/digests ==="
+          ls -la /tmp/digests
+          echo "=== Files matched by glob * ==="
+          cd /tmp/digests && printf '%s\n' *
+          echo "=== Test manifest command construction ==="
+          cd /tmp/digests && printf '${{ env.REGISTRY }}/${{ github.repository }}-cuda-dev@sha256:%s ' *
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
