@@ -43,14 +43,22 @@ esac
 
 # try to find wheel with correct platform tag
 WHEEL_INDEX="https://wheels.vllm.ai/${VLLM_COMMIT_SHA}/vllm/"
-WHEEL_URL=$(curl -sL "${WHEEL_INDEX}" | grep -o "href=\"[^\"]*${PLATFORM_TAG}[^\"]*\"" | cut -d'"' -f2 | sed 's|^\.\./||' | head -1)
+WHEEL_FILENAME=$(curl -sL "${WHEEL_INDEX}" | grep -o "href=\"[^\"]*${PLATFORM_TAG}[^\"]*\"" | cut -d'"' -f2 | sed 's|^\.\./||' | head -1)
 
-if [ -n "${WHEEL_URL}" ]; then
+if [ -n "${WHEEL_FILENAME}" ]; then
   # wheel is in parent directory relative to /vllm/ listing
-  WHEEL_URL="https://wheels.vllm.ai/${VLLM_COMMIT_SHA}/${WHEEL_URL}"
-  echo "Found wheel for ${PLATFORM_TAG}: ${WHEEL_URL}"
+  WHEEL_URL="https://wheels.vllm.ai/${VLLM_COMMIT_SHA}/${WHEEL_FILENAME}"
+
+  # verify wheel actually exists (vllm index sometimes lists wheels that weren't uploaded)
+  if curl -IsL "${WHEEL_URL}" | head -1 | grep -q "200"; then
+    echo "Found and verified wheel for ${PLATFORM_TAG}: ${WHEEL_URL}"
+  else
+    echo "Wheel listed but not found on server (404): ${WHEEL_URL}"
+    WHEEL_URL=""
+  fi
 else
   echo "No wheel found for platform ${PLATFORM_TAG} at ${WHEEL_INDEX}"
+  WHEEL_URL=""
 fi
 
 if [ "${VLLM_PREBUILT}" = "1" ]; then
