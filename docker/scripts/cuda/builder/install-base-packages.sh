@@ -5,6 +5,7 @@ set -Eeu
 #
 # Required environment variables:
 # - PYTHON_VERSION: Python version to install (e.g., 3.12)
+# - CUDA_MAJOR: CUDA major version (e.g., 12)
 
 dnf -q install -y dnf-plugins-core
 dnf -q install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
@@ -44,6 +45,8 @@ dnf -q install -y --allowerasing \
     pciutils-libs \
     ninja-build \
     xz \
-    rsync
+    rsync \
+    libnvshmem3-cuda-${CUDA_MAJOR}-3.4.5-1 \
+    libnvshmem3-devel-cuda-${CUDA_MAJOR}-3.4.5-1
 
 dnf clean all

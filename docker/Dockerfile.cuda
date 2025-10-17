@@ -59,13 +59,12 @@ ENV LIBRARY_PATH="/usr/local/cuda/lib64:/usr/local/lib:/usr/local/lib64" \
     CPATH="/usr/include:/usr/local/include:/usr/local/cuda/include" \
     PKG_CONFIG_PATH="/usr/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig"
 
-ARG NVSHMEM_VERSION=3.3.20
-
-# Set NVSHMEM paths for CMake discovery
-ENV NVSHMEM_DIR="/opt/nvshmem-${NVSHMEM_VERSION}" \
-    PATH="/opt/nvshmem-${NVSHMEM_VERSION}/bin:${PATH}" \
-    CPATH="/opt/nvshmem-${NVSHMEM_VERSION}/include:${CPATH}" \
-    LIBRARY_PATH="/opt/nvshmem-${NVSHMEM_VERSION}/lib:${LIBRARY_PATH}"
+# NVSHMEM installed from nvidia repos via libnvshmem3-cuda-${CUDA_MAJOR}-3.4.5-1
+# Libraries: /usr/lib64/nvshmem/${CUDA_MAJOR}/, Headers: /usr/include/nvshmem_${CUDA_MAJOR}/
+ENV NVSHMEM_DIR="/usr/bin/nvshmem_${CUDA_MAJOR}" \
+    PATH="/usr/bin/nvshmem_${CUDA_MAJOR}:${PATH}" \
+    CPATH="/usr/include/nvshmem_${CUDA_MAJOR}:${CPATH}" \
+    LIBRARY_PATH="/usr/lib64/nvshmem/${CUDA_MAJOR}:${LIBRARY_PATH}"
 
 # Build and install gdrcopy
 COPY docker/scripts/cuda/builder/build-gdrcopy.sh /tmp/build-gdrcopy.sh
@@ -82,21 +81,8 @@ ENV CPPFLAGS="-I$NVSHMEM_DIR/include ${CPPFLAGS}" \
 # Create wheels directory
 RUN mkdir -p /wheels
 
-# Copy patches before build
-COPY patches/ /tmp/patches/
-
-# Build and install NVSHMEM from source with coreweave patch (skip on ARM64)
-COPY docker/scripts/cuda/builder/build-nvshmem.sh /tmp/build-nvshmem.sh
-RUN --mount=type=secret,id=aws_access_key_id \
-    --mount=type=secret,id=aws_secret_access_key \
-    chmod +x /tmp/build-nvshmem.sh && \
-    if [ "${TARGETPLATFORM}" != "linux/arm64" ]; then \
-        NVSHMEM_CUDA_ARCHITECTURES="${NVSHMEM_CUDA_ARCHITECTURES}" /tmp/build-nvshmem.sh; \
-    else \
-        echo "Skipping NVSHMEM build on ARM64"; \
-        mkdir -p "${NVSHMEM_DIR}"; \
-    fi && \
-    rm /tmp/build-nvshmem.sh
+# NVSHMEM now installed from nvidia repos (libnvshmem3-cuda-${CUDA_MAJOR}-3.4.5-1)
+# No need to build from source anymore
 
 # Pin torch, so all deps are built against the same version
 # as vllm itself
@@ -171,7 +157,6 @@ ARG CUDA_MAJOR=12
 ARG CUDA_MINOR=9
 ARG CUDA_PATCH=1
 ARG PYTHON_VERSION
-ARG NVSHMEM_VERSION=3.3.20
 
 COPY docker/constraints.txt /tmp/constraints.txt
 
@@ -181,11 +166,11 @@ ENV LANG=C.UTF-8 \
     UV_TORCH_BACKEND=${UV_TORCH_BACKEND:-cu${CUDA_MAJOR}${CUDA_MINOR}} \
     UV_CONSTRAINT=/tmp/constraints.txt \
     VIRTUAL_ENV=/opt/vllm \
-    NVSHMEM_DIR="/opt/nvshmem-${NVSHMEM_VERSION}" \
+    NVSHMEM_DIR="/usr/bin/nvshmem_${CUDA_MAJOR}" \
     # LD_LIBRARY_PATH needs the torch path to apply proper linkers so as not to produce torch ABI missmatch
-    LD_LIBRARY_PATH="/opt/vllm/lib64/python${PYTHON_VERSION}/site-packages/torch/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:/usr/local/lib:/usr/local/lib64:/opt/nvshmem-${NVSHMEM_VERSION}/lib:${LD_LIBRARY_PATH}" \
-    PATH="/opt/nvshmem-${NVSHMEM_VERSION}/bin:${PATH}" \
-    CPATH="/opt/nvshmem-${NVSHMEM_VERSION}/include:${CPATH}" \
+    LD_LIBRARY_PATH="/opt/vllm/lib64/python${PYTHON_VERSION}/site-packages/torch/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:/usr/local/lib:/usr/local/lib64:/usr/lib64/nvshmem/${CUDA_MAJOR}:${LD_LIBRARY_PATH}" \
+    PATH="/usr/bin/nvshmem_${CUDA_MAJOR}:${PATH}" \
+    CPATH="/usr/include/nvshmem_${CUDA_MAJOR}:${CPATH}" \
     TORCH_CUDA_ARCH_LIST="9.0a;10.0+PTX"
 
 # Update base packages
@@ -193,7 +178,8 @@ RUN dnf update -y && dnf clean all
 
 # Install only runtime dependencies
 # hadolint ignore=DL3041
-RUN dnf install -y --allowerasing \
+RUN dnf config-manager --add-repo "https://developer.download.nvidia.com/compute/cuda/repos/rhel9/$(uname -m)/cuda-rhel9.repo" && \
+    dnf install -y --allowerasing \
         python${PYTHON_VERSION} python${PYTHON_VERSION}-pip python${PYTHON_VERSION}-devel \
         rdma-core-devel \
         numactl-libs \
@@ -203,19 +189,19 @@ RUN dnf install -y --allowerasing \
         curl \
         jq \
         gcc \
-        cuda-nvcc-${CUDA_MAJOR}-${CUDA_MINOR} && dnf clean all
+        cuda-nvcc-${CUDA_MAJOR}-${CUDA_MINOR} \
+        libnvshmem3-cuda-${CUDA_MAJOR}-3.4.5-1 \
+        libnvshmem3-devel-cuda-${CUDA_MAJOR}-3.4.5-1 && dnf clean all
 
 # Copy gdrcopy libraries from builder
 COPY --from=builder /usr/lib64/libgdrapi.so.2.* /usr/lib64/
 COPY --from=builder /usr/local/lib/libgdrapi.so* /usr/local/lib/
 
-# Copy compiled NVSHMEM libraries from builder
-COPY --from=builder /opt/nvshmem-${NVSHMEM_VERSION}/ /opt/nvshmem-${NVSHMEM_VERSION}/
+# NVSHMEM now installed from nvidia repos (no need to copy from builder)
 
 # Setup ldconfig and library paths
 RUN echo "/usr/local/lib" > /etc/ld.so.conf.d/local.conf && \
     echo "/usr/local/lib64" >> /etc/ld.so.conf.d/local.conf && \
-    echo "/opt/nvshmem-${NVSHMEM_VERSION}/lib" >> /etc/ld.so.conf.d/local.conf && \
     ldconfig
 
 # Setup Python virtual environment
