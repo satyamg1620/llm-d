@@ -26,19 +26,31 @@ git -C /opt/vllm-source config --system --add safe.directory /opt/vllm-source
 git -C /opt/vllm-source fetch --depth=1 origin "${VLLM_COMMIT_SHA}" || true
 git -C /opt/vllm-source checkout -q "${VLLM_COMMIT_SHA}"
 
-# detect if prebuilt wheel exists
-WHEEL_URL=$(pip install \
-  --no-cache-dir \
-  --no-index \
-  --no-deps \
-  --find-links "https://wheels.vllm.ai/${VLLM_COMMIT_SHA}/vllm/" \
-  --only-binary=:all: \
-  --pre vllm \
-  --dry-run \
-  --disable-pip-version-check \
-  -qqq \
-  --report - \
-  2>/dev/null | jq -r '.install[0].download_info.url')
+# detect architecture and construct wheel URL
+ARCH=$(uname -m)
+case "${ARCH}" in
+  aarch64)
+    PLATFORM_TAG="manylinux2014_aarch64"
+    ;;
+  x86_64)
+    PLATFORM_TAG="manylinux1_x86_64"
+    ;;
+  *)
+    echo "Unsupported architecture: ${ARCH}"
+    exit 1
+    ;;
+esac
+
+# try to find wheel with correct platform tag
+WHEEL_INDEX="https://wheels.vllm.ai/${VLLM_COMMIT_SHA}/vllm/"
+WHEEL_URL=$(curl -sL "${WHEEL_INDEX}" | grep -oP "vllm-[^\"]+${PLATFORM_TAG}.whl" | head -1)
+
+if [ -n "${WHEEL_URL}" ]; then
+  WHEEL_URL="${WHEEL_INDEX}${WHEEL_URL}"
+  echo "Found wheel for ${PLATFORM_TAG}: ${WHEEL_URL}"
+else
+  echo "No wheel found for platform ${PLATFORM_TAG} at ${WHEEL_INDEX}"
+fi
 
 if [ "${VLLM_PREBUILT}" = "1" ]; then
   if [ -z "${WHEEL_URL}" ]; then
