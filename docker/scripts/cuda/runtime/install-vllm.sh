@@ -46,6 +46,11 @@ WHEEL_INDEX="https://wheels.vllm.ai/${VLLM_COMMIT_SHA}/vllm/"
 WHEEL_FILENAME=$(curl -sL "${WHEEL_INDEX}" | grep -o "href=\"[^\"]*${PLATFORM_TAG}[^\"]*\"" | cut -d'"' -f2 | sed 's|^\.\./||' | head -1)
 
 if [ -n "${WHEEL_FILENAME}" ]; then
+  # arm wheels are uploaded without +cuXXX suffix, but html index includes it
+  if [ "${ARCH}" = "aarch64" ]; then
+    WHEEL_FILENAME=$(echo "${WHEEL_FILENAME}" | sed 's/%2Bcu[0-9][0-9]*//')
+  fi
+
   # wheel is in parent directory relative to /vllm/ listing
   WHEEL_URL="https://wheels.vllm.ai/${VLLM_COMMIT_SHA}/${WHEEL_FILENAME}"
 
