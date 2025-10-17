@@ -47,6 +47,7 @@ dnf -q install -y --allowerasing \
     xz \
     rsync \
     libnvshmem3-cuda-${CUDA_MAJOR}-3.4.5-1 \
-    libnvshmem3-devel-cuda-${CUDA_MAJOR}-3.4.5-1
+    libnvshmem3-devel-cuda-${CUDA_MAJOR}-3.4.5-1 \
+    libnvshmem3-static-cuda-${CUDA_MAJOR}-3.4.5-1
 
 dnf clean all

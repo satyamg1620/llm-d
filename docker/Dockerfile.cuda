@@ -195,7 +195,8 @@ RUN dnf config-manager --add-repo "https://developer.download.nvidia.com/compute
         gcc \
         cuda-nvcc-${CUDA_MAJOR}-${CUDA_MINOR} \
         libnvshmem3-cuda-${CUDA_MAJOR}-3.4.5-1 \
-        libnvshmem3-devel-cuda-${CUDA_MAJOR}-3.4.5-1 && dnf clean all
+        libnvshmem3-devel-cuda-${CUDA_MAJOR}-3.4.5-1 \
+        libnvshmem3-static-cuda-${CUDA_MAJOR}-3.4.5-1 && dnf clean all
 
 # Copy gdrcopy libraries from builder
 COPY --from=builder /usr/lib64/libgdrapi.so.2.* /usr/lib64/
