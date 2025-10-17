@@ -230,8 +230,7 @@ WORKDIR /workspace
 
 # Define commit SHAs as build args to avoid layer invalidation
 ARG LMCACHE_COMMIT_SHA="0db8ae4746a207a72483d716b5f82545a2ead24b"
-ARG VLLM_REPO="https://github.com/neuralmagic/vllm"
-ARG VLLM_PRECOMPILED_WHEEL_COMMIT="483ea646111b5ef576c2c6c833c321520de72fb2"
+ARG LMCACHE_REPO="https://github.com/neuralmagic/LMCache.git"
 ARG VLLM_COMMIT_SHA="13daa6ab352eb0892b261478ac6880eb390860d4"
 
 # Define if lmcache should be built 
