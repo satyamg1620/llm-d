@@ -15,11 +15,16 @@ set -Eeu
 # - PPLX_KERNELS_REPO: pplx-kernels repository URL
 # - PPLX_KERNELS_SHA: pplx-kernels commit SHA
 # - USE_SCCACHE: whether to use sccache (true/false)
+# - TARGETPLATFORM: Docker buildx platform (e.g., linux/amd64, linux/arm64)
 
 # shellcheck source=/dev/null
 source "${VIRTUAL_ENV}/bin/activate"
 # shellcheck source=/dev/null
 source /usr/local/bin/setup-sccache
+
+if [ "${TARGETPLATFORM}" = "linux/arm64" ]; then
+    export TORCH_CUDA_ARCH_LIST="9.0a+PTX"
+fi
 
 # install build tools
 uv pip install build cuda-python numpy setuptools-scm ninja
