@@ -29,6 +29,7 @@ concurrency:
 
 jobs:
   pre-commit:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
@@ -84,12 +85,16 @@ jobs:
               - 'docker/Dockerfile.gke'
 
   cuda-build-llm-d:
-    needs: [pre-commit, detect-changes]
+    needs: [detect-changes]
     if: ${{ needs.detect-changes.outputs.cuda == 'true' }}
     strategy:
       fail-fast: false
       matrix:
-        platform: [linux/amd64, linux/arm64]
+        include:
+          - platform: linux/amd64
+            arch: amd64
+          - platform: linux/arm64
+            arch: arm64
     runs-on: vllm-runner
     steps:
       - name: Checkout code
@@ -118,12 +123,6 @@ jobs:
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Set platform variables
-        id: platform
-        run: |
-          ARCH=$(echo "${{ matrix.platform }}" | cut -d/ -f2)
-          echo "arch=${ARCH}" >> $GITHUB_OUTPUT
-
       - name: Build & Push
         id: build
         uses: docker/build-push-action@v5
@@ -133,8 +132,8 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           provenance: false
-          cache-from: type=gha,scope=cuda-${{ steps.platform.outputs.arch }}
-          cache-to: type=gha,mode=max,scope=cuda-${{ steps.platform.outputs.arch }}
+          cache-from: type=gha,scope=cuda-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=cuda-${{ matrix.arch }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: >-
             type=image,name=${{ env.REGISTRY }}/${{ github.repository }}-cuda-dev,
@@ -156,7 +155,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-cuda-${{ steps.platform.outputs.arch }}
+          name: digests-cuda-${{ matrix.arch }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -238,7 +237,7 @@ jobs:
           fi
 
   aws-build-llm-d:
-    needs: [pre-commit, detect-changes]
+    needs: [detect-changes]
     if: ${{ needs.detect-changes.outputs.aws == 'true' }}
     strategy:
       fail-fast: false
@@ -317,7 +316,7 @@ jobs:
           fi
 
   gke-build-llm-d:
-    needs: [pre-commit, detect-changes]
+    needs: [detect-changes]
     if: ${{ needs.detect-changes.outputs.gke == 'true' }}
     strategy:
       fail-fast: false
@@ -396,7 +395,7 @@ jobs:
           fi
 
   xpu-build-llm-d:
-    needs: [pre-commit, detect-changes]
+    needs: [detect-changes]
     if: ${{ needs.detect-changes.outputs.xpu == 'true' }}
     strategy:
       fail-fast: false
