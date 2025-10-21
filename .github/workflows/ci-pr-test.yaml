@@ -13,6 +13,18 @@ on:
       - guides/pd-disaggregation/helmfile.yaml.gotmpl
       - guides/inference-scheduling/ms-inference-scheduling/values_xpu.yaml
       - guides/inference-scheduling/helmfile.yaml.gotmpl
+  workflow_dispatch:
+    inputs:
+      pr_or_branch:
+        description: 'Pull-request number or branch name to test'
+        required: true
+        default: 'main'
+        type: string
+      custom_image_tag:
+        description: 'Custom XPU image tag to use (optional)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -31,8 +43,8 @@ jobs:
     if: ${{ !cancelled() }}
     uses: ./.github/workflows/e2e-inference-scheduling-xpu.yaml
     with:
-      pr_or_branch: ${{ github.event.pull_request.number }}
-      custom_image_tag: ${{ github.event.pull_request.number }}
+      pr_or_branch: ${{ github.event.inputs.pr_or_branch || github.event.pull_request.number }}
+      custom_image_tag: ${{ github.event.inputs.custom_image_tag || github.event.pull_request.number }}
     secrets: inherit
 
   # Call the XPU PD Disaggregation test workflow
@@ -41,6 +53,6 @@ jobs:
     if: ${{ !cancelled() }}
     uses: ./.github/workflows/e2e-pd-disaggregation-xpu.yaml
     with:
-      pr_or_branch: ${{ github.event.pull_request.number }}
-      custom_image_tag: ${{ github.event.pull_request.number }}
+      pr_or_branch: ${{ github.event.inputs.pr_or_branch || github.event.pull_request.number }}
+      custom_image_tag: ${{ github.event.inputs.custom_image_tag || github.event.pull_request.number }}
     secrets: inherit
