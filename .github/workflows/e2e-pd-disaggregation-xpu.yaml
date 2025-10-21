@@ -31,7 +31,7 @@ on:
 jobs:
   deploy_and_validate:
     if: >
-      github.event_name == 'workflow_dispatch'
+      github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
     runs-on: xpu
     env:
       NAMESPACE: "llm-d-xpu-pd"
@@ -99,11 +99,24 @@ jobs:
             --namespace "${NAMESPACE}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
+      - name: Set image tag for deployment
+        id: set_image_tag
+        run: |
+          CUSTOM_TAG="${{ inputs.custom_image_tag }}"
+          if [ -n "${CUSTOM_TAG}" ]; then
+            echo "Using custom image tag: ${CUSTOM_TAG}"
+            echo "IMAGE_TAG=${CUSTOM_TAG}" >> $GITHUB_ENV
+            echo "HELM_SET_IMAGE=--set decode.containers[0].image=ghcr.io/${{ github.repository }}-xpu-dev:${CUSTOM_TAG} --set prefill.containers[0].image=ghcr.io/${{ github.repository }}-xpu-dev:${CUSTOM_TAG}" >> $GITHUB_ENV
+          else
+            echo "Using default image tag from values file"
+            echo "HELM_SET_IMAGE=" >> $GITHUB_ENV
+          fi
+
       - name: Deploy PD disaggregation guide
         run: |
           cd guides/pd-disaggregation
           RELEASE_NAME_POSTFIX=${RELEASE_NAME_POSTFIX} \
-          helmfile apply -e xpu -n "${NAMESPACE}" \
+          helmfile apply -e xpu -n "${NAMESPACE}" ${HELM_SET_IMAGE} \
             | tee ~/pd-disaggregation-deployment.log
           echo "---------------------------------------" >> ~/pd-disaggregation-xpu-deployment.log
 
