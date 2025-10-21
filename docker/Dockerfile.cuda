@@ -62,11 +62,12 @@ ENV LIBRARY_PATH="/usr/local/cuda/lib64:/usr/local/lib:/usr/local/lib64" \
     PKG_CONFIG_PATH="/usr/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig"
 
 # NVSHMEM installed from nvidia repos via libnvshmem3-cuda-${CUDA_MAJOR}-3.4.5-1
-# Libraries: /usr/lib64/nvshmem/${CUDA_MAJOR}/, Headers: /usr/include/nvshmem_${CUDA_MAJOR}/
+# Libraries on RHEL: /usr/lib64/nvshmem/${CUDA_MAJOR}/, on Ubuntu: /usr/lib/{arch}-linux-gnu/nvshmem/${CUDA_MAJOR}/
+# Headers: /usr/include/nvshmem_${CUDA_MAJOR}/
 ENV NVSHMEM_DIR="/usr/bin/nvshmem_${CUDA_MAJOR}" \
     PATH="/usr/bin/nvshmem_${CUDA_MAJOR}:${PATH}" \
     CPATH="/usr/include/nvshmem_${CUDA_MAJOR}:${CPATH}" \
-    LIBRARY_PATH="/usr/lib64/nvshmem/${CUDA_MAJOR}:${LIBRARY_PATH}"
+    LIBRARY_PATH="/usr/lib64/nvshmem/${CUDA_MAJOR}:/usr/lib/x86_64-linux-gnu/nvshmem/${CUDA_MAJOR}:/usr/lib/aarch64-linux-gnu/nvshmem/${CUDA_MAJOR}:${LIBRARY_PATH}"
 
 # Build and install gdrcopy
 COPY docker/scripts/cuda/builder/build-gdrcopy.sh /tmp/build-gdrcopy.sh
@@ -74,21 +75,30 @@ RUN --mount=type=cache,target=/var/cache/git \
     --mount=type=secret,id=aws_access_key_id \
     --mount=type=secret,id=aws_secret_access_key \
     chmod +x /tmp/build-gdrcopy.sh && \
-    TARGETPLATFORM=${TARGETPLATFORM} /tmp/build-gdrcopy.sh && \
+    TARGETPLATFORM=${TARGETPLATFORM} TARGETOS=${TARGETOS} /tmp/build-gdrcopy.sh && \
     rm /tmp/build-gdrcopy.sh
 
+# Determine NVSHMEM library path based on OS and architecture, and create symlinks
+RUN if [ "${TARGETOS:-rhel}" = "ubuntu" ]; then \
+        if [ "${TARGETPLATFORM:-linux/amd64}" = "linux/arm64" ]; then \
+            NVSHMEM_LIBDIR="/usr/lib/aarch64-linux-gnu/nvshmem/${CUDA_MAJOR}"; \
+        else \
+            NVSHMEM_LIBDIR="/usr/lib/x86_64-linux-gnu/nvshmem/${CUDA_MAJOR}"; \
+        fi; \
+    else \
+        NVSHMEM_LIBDIR="/usr/lib64/nvshmem/${CUDA_MAJOR}"; \
+    fi && \
+    echo "${NVSHMEM_LIBDIR}" > /tmp/nvshmem_libdir && \
+    mkdir -p /usr/bin/nvshmem_${CUDA_MAJOR} && \
+    ln -sf "${NVSHMEM_LIBDIR}" /usr/bin/nvshmem_${CUDA_MAJOR}/lib && \
+    ln -sf /usr/include/nvshmem_${CUDA_MAJOR} /usr/bin/nvshmem_${CUDA_MAJOR}/include
+
+# Set compiler flags - include all possible nvshmem paths (linker ignores non-existent ones)
 ENV CPPFLAGS="-I/usr/include/nvshmem_${CUDA_MAJOR} ${CPPFLAGS}" \
-    LDFLAGS="-L/usr/lib64/nvshmem/${CUDA_MAJOR} ${LDFLAGS}"
+    LDFLAGS="-L/usr/lib64/nvshmem/${CUDA_MAJOR} -L/usr/lib/x86_64-linux-gnu/nvshmem/${CUDA_MAJOR} -L/usr/lib/aarch64-linux-gnu/nvshmem/${CUDA_MAJOR} ${LDFLAGS}"
 
 # Create wheels directory
 RUN mkdir -p /wheels
-
-# NVSHMEM now installed from nvidia repos (libnvshmem3-cuda-${CUDA_MAJOR}-3.4.5-1)
-# No need to build from source anymore
-# Create symlink structure for DeepEP's setup.py which expects $NVSHMEM_DIR/lib and $NVSHMEM_DIR/include
-RUN mkdir -p /usr/bin/nvshmem_${CUDA_MAJOR} && \
-    ln -sf /usr/lib64/nvshmem/${CUDA_MAJOR} /usr/bin/nvshmem_${CUDA_MAJOR}/lib && \
-    ln -sf /usr/include/nvshmem_${CUDA_MAJOR} /usr/bin/nvshmem_${CUDA_MAJOR}/include
 
 # Pin torch, so all deps are built against the same version
 # as vllm itself
@@ -176,7 +186,7 @@ ENV LANG=C.UTF-8 \
     VIRTUAL_ENV=/opt/vllm \
     NVSHMEM_DIR="/usr/bin/nvshmem_${CUDA_MAJOR}" \
     # LD_LIBRARY_PATH needs the torch path to apply proper linkers so as not to produce torch ABI missmatch
-    LD_LIBRARY_PATH="/opt/vllm/lib64/python${PYTHON_VERSION}/site-packages/torch/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:/usr/local/lib:/usr/local/lib64:/usr/lib64/nvshmem/${CUDA_MAJOR}:${LD_LIBRARY_PATH}" \
+    LD_LIBRARY_PATH="/opt/vllm/lib64/python${PYTHON_VERSION}/site-packages/torch/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:/usr/local/lib:/usr/local/lib64:/usr/lib64/nvshmem/${CUDA_MAJOR}:/usr/lib/x86_64-linux-gnu/nvshmem/${CUDA_MAJOR}:/usr/lib/aarch64-linux-gnu/nvshmem/${CUDA_MAJOR}:${LD_LIBRARY_PATH}" \
     PATH="/usr/bin/nvshmem_${CUDA_MAJOR}:${PATH}" \
     CPATH="/usr/include/nvshmem_${CUDA_MAJOR}:${CPATH}" \
     TORCH_CUDA_ARCH_LIST="9.0a;10.0+PTX"
@@ -191,8 +201,32 @@ RUN if [ "${TARGETOS:-rhel}" = "ubuntu" ]; then apt-get update -qq && apt-get in
     rm /tmp/install-runtime-packages.sh /tmp/runtime-package-mappings.json /tmp/package-utils.sh
 
 # Copy gdrcopy libraries from builder
-COPY --from=builder /usr/lib64/libgdrapi.so.2.* /usr/lib64/
+# Install to /usr/local/lib (always present) and multiarch lib dir
 COPY --from=builder /usr/local/lib/libgdrapi.so* /usr/local/lib/
+# Copy from builder's multiarch directory to runtime's matching directory
+RUN if [ "${TARGETOS:-rhel}" = "ubuntu" ]; then \
+        if [ "${TARGETPLATFORM:-linux/amd64}" = "linux/arm64" ]; then \
+            LIBDIR="/usr/lib/aarch64-linux-gnu"; \
+        else \
+            LIBDIR="/usr/lib/x86_64-linux-gnu"; \
+        fi; \
+    else \
+        LIBDIR="/usr/lib64"; \
+    fi && \
+    mkdir -p "${LIBDIR}"
+COPY --from=builder /tmp/gdrcopy_libs /tmp/
+RUN if [ -d /tmp/gdrcopy_libs ]; then \
+        if [ "${TARGETOS:-rhel}" = "ubuntu" ]; then \
+            if [ "${TARGETPLATFORM:-linux/amd64}" = "linux/arm64" ]; then \
+                cp -a /tmp/gdrcopy_libs/* /usr/lib/aarch64-linux-gnu/ || true; \
+            else \
+                cp -a /tmp/gdrcopy_libs/* /usr/lib/x86_64-linux-gnu/ || true; \
+            fi; \
+        else \
+            cp -a /tmp/gdrcopy_libs/* /usr/lib64/ || true; \
+        fi; \
+        rm -rf /tmp/gdrcopy_libs; \
+    fi
 
 # NVSHMEM now installed from nvidia repos (no need to copy from builder)
 
@@ -282,6 +316,8 @@ ENV PATH="${VIRTUAL_ENV}/bin:/usr/local/nvidia/bin:${PATH}" \
     OUTLINES_CACHE_DIR=/tmp/outlines \
     NUMBA_CACHE_DIR=/tmp/numba \
     TRITON_CACHE_DIR=/tmp/triton \
+    # TRITON_LIBCUDA_PATH: On RHEL use /usr/lib64, on Ubuntu ARM64 use /usr/lib/aarch64-linux-gnu, on Ubuntu AMD64 use /usr/lib/x86_64-linux-gnu
+    # Can be overridden at runtime via deployment config
     TRITON_LIBCUDA_PATH=/usr/lib64 \
     TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC=15 \
     TORCH_NCCL_DUMP_ON_TIMEOUT=0 \
