@@ -169,6 +169,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ============================================================================
 FROM nvcr.io/nvidia/cuda:${CUDA_MAJOR}.${CUDA_MINOR}.${CUDA_PATCH}-devel-ubi9 AS runtime
 
+RUN echo "testing" > /tmp/testing.txt
+
 ARG CUDA_MAJOR=12
 ARG CUDA_MINOR=9
 ARG CUDA_PATCH=1
