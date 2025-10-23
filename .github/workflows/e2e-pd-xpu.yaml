@@ -30,8 +30,6 @@ on:
 
 jobs:
   deploy_and_validate:
-    if: >
-      github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || github.event_name == 'schedule'
     runs-on: xpu
     env:
       NAMESPACE: "llm-d-xpu-pd"

@@ -29,8 +29,6 @@ on:
         type: string
 jobs:
   deploy_and_validate:
-    if: >
-      github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
     runs-on: xpu
     env:
       NAMESPACE: "llm-d-xpu-is"
