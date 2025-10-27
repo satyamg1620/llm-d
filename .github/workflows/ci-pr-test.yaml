@@ -1,4 +1,4 @@
-name: CI-XPU-PR-Test
+name: CI-PR-Test
 
 on:
   push:
