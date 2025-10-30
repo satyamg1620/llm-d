@@ -280,23 +280,40 @@ jobs:
         working-directory: /tmp/digests
         run: |
           SHORT_SHA=${GITHUB_SHA:0:7}
+          IMAGE_BASE="${{ env.REGISTRY }}/${{ github.repository }}-cuda-dev${{ matrix.image_suffix }}"
+
           # build the list of source images (by digest)
           sources=""
           for digest in *; do
-            image="${{ env.REGISTRY }}/${{ github.repository }}-cuda-dev${{ matrix.image_suffix }}"
-            sources="$sources ${image}@sha256:$digest"
+            sources="$sources ${IMAGE_BASE}@sha256:$digest"
           done
 
-          # create manifest and tag it
-          docker buildx imagetools create \
-            -t ${{ env.REGISTRY }}/${{ github.repository }}-cuda-dev${{ matrix.image_suffix }}:pr-${{
-              github.event.pull_request.number }} \
-            -t ${{ env.REGISTRY }}/${{ github.repository }}-cuda-dev${{ matrix.image_suffix }}:sha-${SHORT_SHA} \
-            $sources
+          # build tag list
+          tags=""
+          tags="$tags -t ${IMAGE_BASE}:sha-${SHORT_SHA}"
+
+          # add PR tag if this is a pull request
+          if [ -n "${{ github.event.pull_request.number }}" ]; then
+            tags="$tags -t ${IMAGE_BASE}:pr-${{ github.event.pull_request.number }}"
+          fi
+
+          # add branch tag if this is a push event
+          if [ "${{ github.event_name }}" = "push" ]; then
+            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+            tags="$tags -t ${IMAGE_BASE}:${BRANCH_NAME}"
+
+            # add latest tag if this is the default branch
+            if [ "${BRANCH_NAME}" = "main" ]; then
+              tags="$tags -t ${IMAGE_BASE}:latest"
+            fi
+          fi
+
+          # create manifest with all tags
+          docker buildx imagetools create $tags $sources
 
           # extract final manifest digest
           MANIFEST_DIGEST=$(docker buildx imagetools inspect \
-            ${{ env.REGISTRY }}/${{ github.repository }}-cuda-dev${{ matrix.image_suffix }}:sha-${SHORT_SHA} \
+            ${IMAGE_BASE}:sha-${SHORT_SHA} \
             | awk '/^Digest:/ {print $2}')
           echo "digest=${MANIFEST_DIGEST}" >> $GITHUB_OUTPUT
 
