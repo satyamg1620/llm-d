@@ -44,7 +44,7 @@ decode:
   containers:
   - name: vllm
     image: ghcr.io/llm-d/llm-d-cpu-dev:pr-434
-    imagePullPolicy: Never
+    imagePullPolicy: IfNotPresent
     securityContext:
       privileged: true
     command: ["/bin/bash", "-c"]
