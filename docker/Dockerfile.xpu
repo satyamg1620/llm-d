@@ -40,7 +40,7 @@ CMD ["bash", "-c", "source /root/.bashrc && exec bash"]
 
 # Clone vLLM and build for XPU
 WORKDIR /workspace
-ARG VLLM_VERSION=v0.11.1rc2
+ARG VLLM_VERSION=v0.11.0
 RUN --mount=type=cache,target=/var/cache/git \
     git clone https://github.com/vllm-project/vllm.git && \
     cd vllm && \
@@ -78,12 +78,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # install development dependencies (for testing)
 RUN python3 -m pip install -e tests/vllm_test_utils
 
-# install nixl from source code
-RUN if [ -f /workspace/vllm/tools/install_nixl_from_source_ubuntu.py ]; then \
-        python3 /workspace/vllm/tools/install_nixl_from_source_ubuntu.py; \
-    else \
-        echo "WARNING: /workspace/vllm/tools/install_nixl_from_source_ubuntu.py not found, skipping nixl installation" >&2; \
-    fi
+# install nixl from source code using our latest version
+COPY scripts/install_nixl_from_source_ubuntu.py /tmp/install_nixl_from_source_ubuntu.py
+RUN python3 /tmp/install_nixl_from_source_ubuntu.py
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib/python3.12/dist-packages/.nixl.mesonpy.libs/plugins/"
 
 ENTRYPOINT ["python", "-m", "vllm.entrypoints.openai.api_server"]
