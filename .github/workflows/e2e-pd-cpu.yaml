@@ -129,6 +129,11 @@ jobs:
             | tee ~/pd-cpu-deployment.log
           echo "---------------------------------------" >> ~/pd-cpu-deployment.log
 
+      - name: Apply HTTPRoute
+        run: |
+          cd guides/pd-disaggregation
+          kubectl apply -f httproute.yaml -n "${NAMESPACE}"
+
       - name: fetch helm manifests - prepare for upload
         run: |
           for release_name in "${INFRA_RELEASE_NAME}" "${GAIE_RELEASE_NAME}" "${MS_RELEASE_NAME}"; do
