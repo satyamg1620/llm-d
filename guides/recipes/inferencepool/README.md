@@ -1,6 +1,3 @@
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
 # InferencePool Recipe
 
 This directory contains a standard `values.yaml` for deploying an `InferencePool`.
@@ -10,6 +7,7 @@ This directory contains a standard `values.yaml` for deploying an `InferencePool
 To deploy the `InferencePool`, select your provider below.
 
 <Tabs>
+
   <TabItem value="gke" label="GKE" default>
     This command deploys the `InferencePool` on GKE with GKE-specific monitoring enabled.
 
@@ -18,12 +16,12 @@ To deploy the `InferencePool`, select your provider below.
       -n ${NAMESPACE} \
       -f ./values.yaml \
       --set "provider.name=gke" \
-      --set "inferencePool.apiVersion=inference.networking.k8s.io/v1" \
       --set "inferenceExtension.monitoring.gke.enable=true" \
       oci://us-central1-docker.pkg.dev/k8s-staging-images/gateway-api-inference-extension/charts/inferencepool \
       --version v1.0.1
     ```
   </TabItem>
+
   <TabItem value="istio" label="Istio">
     This command deploys the `InferencePool` with Istio, enabling Prometheus monitoring.
 
@@ -37,6 +35,7 @@ To deploy the `InferencePool`, select your provider below.
       --version v1.0.1
     ```
   </TabItem>
+
   <TabItem value="kgateway" label="KGateway">
     This command deploys the `InferencePool` with Kgateway.
 
@@ -49,6 +48,7 @@ To deploy the `InferencePool`, select your provider below.
       --version v1.0.1
     ```
   </TabItem>
+  
 </Tabs>
 
 ## Verification
@@ -87,3 +87,7 @@ To remove the `InferencePool`, use the following command:
 helm uninstall llm-d-infpool -n ${NAMESPACE}
 ```
 
+
+<!-- Docusaurus tab imports; required for website rendering -->
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';

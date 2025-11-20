@@ -9,3 +9,4 @@ inferenceExtension:
       enable: false
     prometheus:
       enable: false
+ 

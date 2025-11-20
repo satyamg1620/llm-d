@@ -1,6 +1,3 @@
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
 # Gateway Provider Prerequisite
 
 This document will guide you through configuring a [Kubernetes Gateway](https://gateway-api.sigs.k8s.io/) provider that can support the llm-d [`inference-scheduler`](https://github.com/llm-d/llm-d-inference-scheduler) component.
@@ -38,6 +35,7 @@ By integrating with a Gateway -- instead of developing an llm-d specific proxy l
 llm-d requires you select a [Gateway implementation that supports the inference-scheduler](https://gateway-api-inference-extension.sigs.k8s.io/implementations/gateways/). Your infrastructure may provide a default compatible implementation, or you may choose to deploy a gateway implementation onto your cluster. Pick the guidance that matches your environment:
 
 <Tabs>
+
   <TabItem value="gke" label="Cloud-managed (GKE)" default>
     #### Use an infrastructure provided Gateway implementation
 
@@ -61,6 +59,7 @@ The following steps from the [GKE Gateways deployment documentation](https://clo
 The other steps are optional and are not necessary to continue with your guide.
 
   </TabItem>
+
   <TabItem value="self" label="Self-installed (Istio/Kgateway)">
     #### Self-installed Gateway implementations
 
@@ -117,11 +116,13 @@ The other steps are optional and are not necessary to continue with your guide.
 
     If you wish to bump versions or customize your installs, check out our helmfiles for [istio](./istio.helmfile.yaml), and [kgateway](./kgateway.helmfile.yaml) respectively.
   </TabItem>
+
   <TabItem value="other" label="Other providers">
     #### Other Gateway implementations
 
     For other [compatible Gateway implementations](https://gateway-api-inference-extension.sigs.k8s.io/implementations/gateways/) follow the instructions for your selected Gateway. Ensure the necessary CRDs for Gateway API and the Gateway API Inference Extension are installed.
   </TabItem>
+  
 </Tabs>
 
 ## Verify your installation
@@ -136,3 +137,8 @@ kubectl api-resources --api-group=inference.networking.x-k8s.io
 ```
 
 If successful, the first command should return at least the `v1` version of `InferencePool`, and you should also see a `v1alpha2` or newer version of `InferenceObjective`.
+
+
+<!-- Docusaurus tab imports; required for website rendering -->
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';

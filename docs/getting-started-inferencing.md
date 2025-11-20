@@ -1,6 +1,3 @@
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
 # Inference against llm-d
 
 This document show you how to interact with the model server and inference scheduler.
@@ -16,6 +13,7 @@ First we need to choose what strategy we are going to use to expose / interact w
 **_NOTE:_** If you’re unsure which to use—start with port-forward as it's the most reliable and easiest. For anything shareable, use Ingress/Route. Use LoadBalancer if your provider supports it and you just need raw L4 access.
 
 <Tabs>
+
   <TabItem value="port-forward" label="Port-forward (Cluster Internal)" default>
     For gateway providers that install into the cluster you can port forward to the gateway deployment directly.
 
@@ -46,6 +44,7 @@ First we need to choose what strategy we are going to use to expose / interact w
 
     **_NOTE:_** Port 8000 is the default gateway service port in our guides. You can change this by altering the values for the `llm-d-infra` helm chart and updating your port-forward command appropriately.
   </TabItem>
+
   <TabItem value="load-balancer" label="External IP (LoadBalancer)">
     > [!REQUIREMENTS]
     > This requires that the release of the `llm-d-infra` chart must have `.gateway.serviceType` set to `LoadBalancer`. Currently this is the [default value](https://github.com/llm-d-incubation/llm-d-infra/blob/main/charts/llm-d-infra/values.yaml#L167), however it's worth noting.
@@ -69,6 +68,7 @@ First we need to choose what strategy we are going to use to expose / interact w
     export ENDPOINT=$(kubectl get gateway ${GATEWAY_NAME} --no-headers -n ${NAMESPACE} -o jsonpath='{.status.addresses[0].value}')
     ```
   </TabItem>
+
   <TabItem value="ingress" label="Ingress Controller">
     > [!REQUIREMENTS]
     > This requires that the release of the `llm-d-infra` chart must have `.ingress.enabled` set to `true`, and the `.gateway.service.type` to `ClusterIP`.
@@ -92,6 +92,7 @@ First we need to choose what strategy we are going to use to expose / interact w
     export ENDPOINT=$(kubectl get ingress ${GATEWAY_NAME} --no-headers -n ${NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
     ```
   </TabItem>
+  
 </Tabs>
 
 **_NOTE:_** You can also use other platform specific networking options such as Openshift Routes. When benchmarking the `pd-disaggregation` example with OCP routes we noticed that Openshift Networking was enforcing timeouts on gateway requests, which, under heavy load affected our results. If you wish to use a platform dependent option with a benchmarking setup ensure to check your platform docs.
@@ -278,3 +279,8 @@ stern ... | grep -v "Avg prompt throughput"
 ```
 
 However you can also customize this `grep -v` command to include the 0 values so as to view usage metrics only once the server has started receiving traffic. You can also chain multiple terms together to `grep` out using the `\|` delimiter, ex: `grep -v "do not show a in logs\|also do not show b in logs"`.
+
+
+<!-- Docusaurus tab imports; required for website rendering -->
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';

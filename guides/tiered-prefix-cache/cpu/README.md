@@ -1,6 +1,3 @@
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
 # Offloading Prefix Cache to CPU Memory
 
 ## Overview
@@ -21,6 +18,10 @@ First, set up a namespace for the deployment and create the HuggingFace token se
 export NAMESPACE=llm-d-pfc-cpu # or any other namespace
 kubectl create namespace ${NAMESPACE}
 
+# Clone the repo and switch to the latest release tag 
+tag=$(curl -s https://api.github.com/repos/llm-d/llm-d/releases/latest | jq -r '.tag_name')
+git clone https://github.com/llm-d/llm-d.git && cd llm-d && git checkout "$tag"
+
 # NOTE: You must have your HuggingFace token stored in the HF_TOKEN environment variable.
 export HF_TOKEN="<your-hugging-face-token>"
 kubectl create secret generic llm-d-hf-token --from-literal=HF_TOKEN=${HF_TOKEN} -n ${NAMESPACE}
@@ -37,18 +38,21 @@ Deploy the InferencePool using the [InferencePool recipe](../../recipes/inferenc
 ### 3. Deploy vLLM Model Server
 
 <Tabs>
+
     <TabItem value="offloading" label="Offloading Connector">
         Deploy the vLLM model server with the `OffloadingConnector` enabled.
         ```bash
         kubectl apply -k ./manifests/vllm/offloading-connector -n ${NAMESPACE}
         ```
     </TabItem>
+
     <TabItem value="lmcache" label="LMCache Connector" default>
         Deploy the vLLM model server with the `LMCache` connector enabled.
         ```bash
         kubectl apply -k ./manifests/vllm/lmcache-connector -n ${NAMESPACE}
         ```
     </TabItem>
+
 </Tabs>
 
 ## Verifying the installation
@@ -182,3 +186,7 @@ The following table shows that when the KVCache fits within the HBM, the perform
 | **Baseline vllm** | 0.12 | 0.09 | 18.4 | 19.6 | 23389.6 |
 | **vllm + CPU offloading 100GB** | 0.13 | 0.11 | 18.6 | 20.6 | 23032.6 |
 
+
+<!-- Docusaurus tab imports; required for website rendering -->
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';

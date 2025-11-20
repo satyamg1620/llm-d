@@ -1,6 +1,3 @@
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
 # Well-lit Path: Wide Expert Parallelism (EP/DP) with LeaderWorkerSet
 
 ## Overview
@@ -39,8 +36,13 @@ Use the helmfile to compose and install the stack. The Namespace in which the st
 
 ```bash
 export NAMESPACE=llm-d-wide-ep # or any other namespace
-cd guides/wide-ep-lws/
 kubectl create namespace ${NAMESPACE}
+
+# Clone the repo and switch to the latest release tag 
+tag=$(curl -s https://api.github.com/repos/llm-d/llm-d/releases/latest | jq -r '.tag_name')
+git clone https://github.com/llm-d/llm-d.git && cd llm-d && git checkout "$tag"
+
+cd guides/wide-ep-lws/
 ```
 
 ### Deploy Model Servers
@@ -48,22 +50,26 @@ kubectl create namespace ${NAMESPACE}
 GKE and CoreWeave are tested Kubernetes providers for this well-lit path. You can customize the manifests if you run on other Kubernetes providers.
 
 <Tabs>
+
     <TabItem value="gke" label="GKE (H200)" default>
       ```bash
       kubectl apply -k ./manifests/modelserver/gke -n ${NAMESPACE}
       ```
     </TabItem>
+
     <TabItem value="gke-b200" label="GKE (B200)">
       ```bash
       # Deploy on GKE for B200 on the a4 instance type to work around a known vLLM memory issue
       kubectl apply -k ./manifests/modelserver/gke-a4 -n ${NAMESPACE}
       ```
     </TabItem>
+
     <TabItem value="coreweave" label="CoreWeave">
       ```bash
       kubectl apply -k ./manifests/modelserver/coreweave  -n ${NAMESPACE}
       ```
     </TabItem>
+
 </Tabs>
 
 ### Deploy InferencePool
@@ -71,6 +77,7 @@ GKE and CoreWeave are tested Kubernetes providers for this well-lit path. You ca
 Select the provider-specific Helm command using the tabs below.
 
 <Tabs>
+
     <TabItem value="gke" label="GKE" default>
         ```bash
         helm install deepseek-r1 \
@@ -83,6 +90,7 @@ Select the provider-specific Helm command using the tabs below.
           --version v1.0.1
         ```
     </TabItem>
+
     <TabItem value="istio" label="Istio">
         ```bash
         helm install deepseek-r1 \
@@ -94,6 +102,7 @@ Select the provider-specific Helm command using the tabs below.
           --version v1.0.1
         ```
     </TabItem>
+
     <TabItem value="kgateway" label="Kgateway">
         ```bash
         helm install deepseek-r1 \
@@ -103,6 +112,7 @@ Select the provider-specific Helm command using the tabs below.
           --version v1.0.1
         ```
     </TabItem>
+
 </Tabs>
 
 ### Deploy Gateway and HTTPRoute
@@ -110,26 +120,31 @@ Select the provider-specific Helm command using the tabs below.
 Choose the gateway manifest that matches your environment.
 
 <Tabs>
+
   <TabItem value="gke" label="GKE (Regional External)" default>
     ```bash
     kubectl apply -k ./manifests/gateway/gke-l7-regional-external-managed -n ${NAMESPACE}
     ```
   </TabItem>
+
   <TabItem value="istio" label="Istio">
     ```bash
     kubectl apply -k ./manifests/gateway/istio -n ${NAMESPACE}
     ```
   </TabItem>
+
   <TabItem value="kgateway" label="Kgateway">
     ```bash
     kubectl apply -k ./manifests/gateway/kgateway -n ${NAMESPACE}
     ```
   </TabItem>
+
   <TabItem value="kgateway-ocp" label="Kgateway on OCP">
     ```bash
     kubectl apply -k ./manifests/gateway/kgateway-openshift -n ${NAMESPACE}
     ```
   </TabItem>
+
 </Tabs>
 
 ### Gateway options
@@ -211,3 +226,8 @@ kubectl delete -k ./manifests/gateway/<gke-l7-regional-external-managed|istio|kg
 ## Customization
 
 For information on customizing a guide and tips to build your own, see [our docs](../../docs/customizing-a-guide.md)
+
+
+<!-- Docusaurus tab imports; required for website rendering -->
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
