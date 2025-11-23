@@ -21,16 +21,18 @@ spec:
       containers:
         - name: benchmark-runner
           # image: "ghcr.io/llm-d/interactive-pod:latest"
-          image: "quay.io/grpereir/interactive-pod:v1.0.1"
+          image: "vllm/vllm-openai:latest"
           imagePullPolicy: Always
           command: ["bash", "-lc", "sleep infinity"]
           tty: true
           stdin: true
           resources:
             requests:
+              nvidia.com/gpu: 1
               cpu: "8"
               memory: "16Gi"
             limits:
+              nvidia.com/gpu: 1
               cpu: "8"
               memory: "16Gi"
           env:
