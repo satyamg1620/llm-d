@@ -1,0 +1,61 @@
+URL := "infra-inference-scheduling-inference-gateway-istio.rob-perf-testing.svc.cluster.local"
+MODEL := "deepseek-ai/DeepSeek-V3.1"
+POD_NAME := "interactive-pod-84b689c9d4-pz4ql"
+
+INPUT_LEN := "1000"
+OUTPUT_LEN := "1000"
+
+exec-bench:
+    oc cp Justfile {{POD_NAME}}:Justfile
+    oc exec -it {{POD_NAME}} -- /bin/bash
+
+copy-bench OUT_DIR:
+    oc cp {{POD_NAME}}:results {{OUT_DIR}}
+
+eval LIMIT CONCURRENT:
+    lm_eval \
+        --model local-completions \
+        --tasks gsm8k \
+        --model_args model={{MODEL}},base_url=http://{{URL}}/v1/completions,num_concurrent={{CONCURRENT}},tokenized_requests=False \
+        --limit {{LIMIT}}
+
+benchmark BATCH_SIZE NUM_PROMPTS:
+    vllm bench serve \
+        --model {{MODEL}} \
+        --base-url http://{{URL}} \
+        --dataset-name random \
+        --random-input-len {{INPUT_LEN}} \
+        --random-output-len {{OUTPUT_LEN}} \
+        --max-concurrency {{BATCH_SIZE}} \
+        --num-prompts {{NUM_PROMPTS}} \
+        --seed $(date +%M%H%M%S) \
+        --percentile-metrics ttft,tpot,itl,e2el \
+        --ignore-eos
+
+sweep OUTFILE:
+    just benchmark 4 20 | tee -a {{OUTFILE}} && \
+    just benchmark 8 40 | tee -a {{OUTFILE}} && \
+    just benchmark 16 80 | tee -a {{OUTFILE}} && \
+    just benchmark 32 160 | tee -a {{OUTFILE}} && \
+    just benchmark 64 320 | tee -a {{OUTFILE}} && \
+    just benchmark 128 640 | tee -a {{OUTFILE}}
+
+guidellm-benchmark CONCURRENCY:
+    guidellm benchmark \
+        --target http://{{URL}} \
+        --rate-type concurrent \
+        --rate {{CONCURRENCY}} \
+        --max-seconds 120 \
+        --model {{MODEL}} \
+        --data "prompt_tokens={{INPUT_LEN}},output_tokens={{OUTPUT_LEN}}" \
+        --random-seed $(date +%M%H%M%S) \
+        --outputs concurrency_{{CONCURRENCY}}.csv \
+        --output-dir results/
+
+guidellm-sweep:
+    just guidellm-benchmark 4 && \
+    just guidellm-benchmark 8 && \
+    just guidellm-benchmark 16 && \
+    just guidellm-benchmark 32 && \
+    just guidellm-benchmark 64 && \
+    just guidellm-benchmark 128
