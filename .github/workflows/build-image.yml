@@ -227,6 +227,9 @@ jobs:
             type=image,name=${{ env.REGISTRY }}/${{ github.repository }}-cuda-dev${{ matrix.image_suffix }},
             push-by-digest=true,name-canonical=true,push=true
           github-token: ${{ secrets.GHCR_TOKEN }}
+          secrets:
+            subman_org=${{ secrets.SUBMAN_ORG }}
+            subman_activation_key=${{ secrets.SUBMAN_ACTIVATION_KEY }}
         env:
           DOCKER_BUILDKIT: "1"
           BUILDKIT_PROGRESS: "plain"

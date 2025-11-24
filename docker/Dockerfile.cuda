@@ -249,7 +249,9 @@ ENV LD_LIBRARY_PATH="/opt/vllm/lib64/python${PYTHON_VERSION}/site-packages/torch
 COPY docker/scripts/cuda/common/package-utils.sh /tmp/package-utils.sh
 COPY docker/packages /tmp/packages
 COPY docker/scripts/cuda/runtime/install-runtime-packages.sh /tmp/install-runtime-packages.sh
-RUN TARGETOS=${TARGETOS} /tmp/install-runtime-packages.sh && \
+RUN --mount=type=secret,id=subman_org \
+    --mount=type=secret,id=subman_activation_key \
+    TARGETOS=${TARGETOS} /tmp/install-runtime-packages.sh && \
     rm -f /tmp/install-runtime-packages.sh /tmp/package-utils.sh && \
     rm -rf /tmp/packages
 
