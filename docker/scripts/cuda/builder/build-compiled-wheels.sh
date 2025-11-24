@@ -6,7 +6,7 @@ set -Eeu
 # Required environment variables:
 # - VIRTUAL_ENV: path to Python virtual environment
 # - CUDA_MAJOR: CUDA major version (e.g., 12)
-# - NVSHMEM_PREFIX: NVSHMEM installation directory
+# - NVSHMEM_DIR: NVSHMEM installation directory
 # - FLASHINFER_REPO: FlashInfer git repo
 # - FLASHINFER_VERSION: FlashInfer git ref
 # - DEEPEP_REPO: DeepEP repository URL
@@ -30,7 +30,7 @@ cd /tmp
 # install build tools (cmake from pip provides 3.22+ needed by pplx-kernels)
 uv pip install build cuda-python numpy setuptools-scm ninja cmake
 
-export NVSHMEM_DIR="${NVSHMEM_PREFIX}"
+export NVSHMEM_DIR="${NVSHMEM_DIR}"
 # overwrite the TORCH_CUDA_ARCH_LIST for MoE kernels
 export TORCH_CUDA_ARCH_LIST="9.0a;10.0+PTX" 
 

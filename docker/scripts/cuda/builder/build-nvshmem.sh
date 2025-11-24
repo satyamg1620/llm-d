@@ -10,7 +10,7 @@ set -Eeux
 # - NVSHMEM_USE_GIT: whether to use NVSHMEM git repo or nvidia developer source download (true/false) - defaults to true
 # - NVSHMEM_REPO: if using git, what repo of NVSHMEM should be used
 # - NVSHMEM_VERSION: NVSHMEM version to build (e.g., 3.3.20, or git ref if NVSHMEM_USE_GIT=true)
-# - NVSHMEM_PREFIX: NVSHMEM installation directory
+# - NVSHMEM_DIR: NVSHMEM installation directory
 # - NVSHMEM_CUDA_ARCHITECTURES: CUDA architectures to build for
 # - EFA_PREFIX: Path to EFA installation
 # - UCX_PREFIX: Path to UCX installation
@@ -56,7 +56,7 @@ fi
 
 cmake \
     -G Ninja \
-    -DNVSHMEM_PREFIX="${NVSHMEM_PREFIX}" \
+    -DNVSHMEM_PREFIX="${NVSHMEM_DIR}" \
     -DCMAKE_CUDA_ARCHITECTURES="${NVSHMEM_CUDA_ARCHITECTURES}" \
     -DCMAKE_CUDA_COMPILER="${CUDA_HOME}/bin/nvcc" \
     -DNVSHMEM_PMIX_SUPPORT=0 \
@@ -79,7 +79,7 @@ ninja -j"$(nproc)"
 ninja install
 
 # copy python wheel to /wheels
-cp "${NVSHMEM_PREFIX}"/lib/python/dist/nvshmem4py_cu"${CUDA_MAJOR}"-*-cp"${PYTHON_VERSION/./}"-cp"${PYTHON_VERSION/./}"-manylinux*.whl /wheels/
+cp "${NVSHMEM_DIR}"/lib/python/dist/nvshmem4py_cu"${CUDA_MAJOR}"-*-cp"${PYTHON_VERSION/./}"-cp"${PYTHON_VERSION/./}"-manylinux*.whl /wheels/
 
 cd /tmp
 rm -rf nvshmem_src*
