@@ -31,6 +31,7 @@ if [ "$TARGETOS" = "ubuntu" ]; then
 elif [ "$TARGETOS" = "rhel" ]; then
     dnf -q update -y
     dnf -q install -y jq
+    ensure_registered
 fi
 
 # main installation logic
@@ -45,6 +46,7 @@ elif [ "$TARGETOS" = "rhel" ]; then
     mapfile -t INSTALL_PKGS < <(load_layered_packages rhel "runtime-packages.json" "cuda")
     install_packages rhel "${INSTALL_PKGS[@]}"
     cleanup_packages rhel
+    ensure_unregistered
 else
     echo "ERROR: Unsupported TARGETOS='$TARGETOS'. Must be 'ubuntu' or 'rhel'." >&2
     exit 1
