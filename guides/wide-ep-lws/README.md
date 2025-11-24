@@ -6,6 +6,7 @@ This guide demonstrates how to deploy DeepSeek-R1-0528 using vLLM's P/D disaggre
 
 * a 32xH200 cluster with InfiniBand networking
 * a 32xH200 cluster on GKE with RoCE networking
+* a 32xB200 cluster on GKE with RoCE networking
 
 > WARNING: We are still investigating and optimizing performance for other hardware and networking configurations
 
@@ -16,7 +17,7 @@ In this example, we will demonstrate a deployment of `DeepSeek-R1-0528` with:
 
 ## Hardware Requirements
 
-This guide requires 32 Nvidia H200 GPUs and InfiniBand or RoCE RDMA networking. Check `modelserver/base/decode.yaml` and `modelserver/base/prefill.yaml` for detailed resource requirements.
+This guide requires 32 Nvidia H200 or B200 GPUs and InfiniBand or RoCE RDMA networking. Check `modelserver/base/decode.yaml` and `modelserver/base/prefill.yaml` for detailed resource requirements.
 
 ## Prerequisites
 
@@ -43,18 +44,38 @@ kubectl create namespace ${NAMESPACE}
 
 GKE and CoreWeave are tested Kubernetes providers for this well-lit path. You can customize the manifests if you run on other Kubernetes providers.
 
-```bash
-# Deploy on GKE
-kubectl apply -k ./manifests/modelserver/gke -n ${NAMESPACE}
+<!-- TABS:START -->
 
-# OR, deploy on CoreWeave
+<!-- TAB:GKE (H200):default -->
+#### GKE (H200)
+```bash
+kubectl apply -k ./manifests/modelserver/gke -n ${NAMESPACE}
+```
+
+<!-- TAB:GKE (B200) -->
+#### GKE (B200)
+```bash
+# Deploy on GKE for B200 on the a4 instance type to work around a known vLLM memory issue
+kubectl apply -k ./manifests/modelserver/gke-a4 -n ${NAMESPACE}
+```
+
+<!-- TAB:CoreWeave -->
+#### CoreWeave
+```bash
 kubectl apply -k ./manifests/modelserver/coreweave  -n ${NAMESPACE}
 ```
 
+<!-- TABS:END -->
+
 ### Deploy InferencePool
 
+Select the provider-specific Helm command using the tabs below.
+
+<!-- TABS:START -->
+
+<!-- TAB:GKE:default -->
+#### GKE
 ```bash
-# For GKE
 helm install deepseek-r1 \
   -n ${NAMESPACE} \
   -f inferencepool.values.yaml \
@@ -63,8 +84,11 @@ helm install deepseek-r1 \
   --set "inferenceExtension.monitoring.gke.enable=true" \
   oci://us-central1-docker.pkg.dev/k8s-staging-images/gateway-api-inference-extension/charts/inferencepool \
   --version v1.0.1
+```
 
-# For Istio
+<!-- TAB:Istio -->
+#### Istio
+```bash
 helm install deepseek-r1 \
   -n ${NAMESPACE} \
   -f inferencepool.values.yaml \
@@ -72,8 +96,11 @@ helm install deepseek-r1 \
   --set "inferenceExtension.monitoring.prometheus.enable=true" \
   oci://us-central1-docker.pkg.dev/k8s-staging-images/gateway-api-inference-extension/charts/inferencepool \
   --version v1.0.1
+```
 
-# For Kgateway
+<!-- TAB:Kgateway -->
+#### Kgateway
+```bash
 helm install deepseek-r1 \
   -n ${NAMESPACE} \
   -f inferencepool.values.yaml \
@@ -81,21 +108,39 @@ helm install deepseek-r1 \
   --version v1.0.1
 ```
 
+<!-- TABS:END -->
+
 ### Deploy Gateway and HTTPRoute
 
+Choose the gateway manifest that matches your environment.
+
+<!-- TABS:START -->
+
+<!-- TAB:GKE (Regional External):default -->
+#### GKE (Regional External)
 ```bash
-# Deploy a gke-l7-regional-external-managed gateway.
 kubectl apply -k ./manifests/gateway/gke-l7-regional-external-managed -n ${NAMESPACE}
+```
 
-# Deploy an Istio gateway.
+<!-- TAB:Istio -->
+#### Istio
+```bash
 kubectl apply -k ./manifests/gateway/istio -n ${NAMESPACE}
+```
 
-# Deploy a kgateway gateway.
+<!-- TAB:Kgateway -->
+#### Kgateway
+```bash
 kubectl apply -k ./manifests/gateway/kgateway -n ${NAMESPACE}
+```
 
-# Deploy a kgateway gateway on Openshift Container Platform (OCP).
+<!-- TAB:Kgateway on OCP -->
+#### Kgateway on OCP
+```bash
 kubectl apply -k ./manifests/gateway/kgateway-openshift -n ${NAMESPACE}
 ```
+
+<!-- TABS:END -->
 
 ### Gateway options
 
