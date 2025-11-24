@@ -13,7 +13,34 @@ inferenceExtension:
     ###################
     pullPolicy: Always
   extProcPort: 9002
-  pluginsConfigFile: "default-plugins.yaml"
+
+  pluginsConfigFile: "intelligent-scheduling-config.yaml"
+  pluginsCustomConfig:
+    intelligent-scheduling-config.yaml: |
+      apiVersion: inference.networking.x-k8s.io/v1alpha1
+      kind: EndpointPickerConfig
+      plugins:
+        - type: single-profile-handler
+        - type: prefix-cache-scorer # in v0.4.0+, automatic parameter tuning is enabled
+        - type: kv-cache-utilization-scorer
+        - type: queue-scorer
+        - type: no-hit-lru-scorer
+          parameters:
+            lruSize: 1000  # 1000 pods for tracking
+        - type: max-score-picker
+      schedulingProfiles:
+        - name: default
+          plugins:
+            - pluginRef: prefix-cache-scorer
+              weight: 3.0
+            - pluginRef: no-hit-lru-scorer
+              weight: 2.0 # effective on cold requests
+            - pluginRef: kv-cache-utilization-scorer
+              weight: 2.0
+            - pluginRef: queue-scorer
+              weight: 2.0
+            - pluginRef: max-score-picker
+
   monitoring:
     interval: "10s"
     # Service account token secret for authentication

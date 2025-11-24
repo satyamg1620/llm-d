@@ -50,12 +50,17 @@ inferenceExtension:
                 hashSeed: "42"
         - type: kv-cache-utilization-scorer
         - type: queue-scorer
+        - type: no-hit-lru-scorer
+          parameters:
+            lruSize: 1000  # 1000 pods for tracking
         - type: max-score-picker
       schedulingProfiles:
         - name: default
           plugins:
             - pluginRef: precise-prefix-cache-scorer
               weight: 3.0
+            - pluginRef: no-hit-lru-scorer
+              weight: 2.0 # effective on cold requests
             - pluginRef: kv-cache-utilization-scorer
               weight: 2.0
             - pluginRef: queue-scorer
