@@ -119,6 +119,21 @@ jobs:
             | tee ~/pd-xpu-deployment.log
           echo "---------------------------------------" >> ~/pd-xpu-deployment.log
 
+      - name: Deploy HTTPRoute
+        run: |
+          cd guides/pd-disaggregation
+          echo "Deploying HTTPRoute with RELEASE_NAME_POSTFIX=${RELEASE_NAME_POSTFIX}..."
+          # Create a temporary HTTPRoute file with the correct names
+          sed -e "s/infra-pd-inference-gateway/${INFRA_RELEASE_NAME}-inference-gateway/g" \
+              -e "s/gaie-pd/${GAIE_RELEASE_NAME}/g" \
+              -e "s/name: llm-d-pd-disaggregation/name: llm-d-xpu-pd-${RELEASE_NAME_POSTFIX}/g" \
+              httproute.yaml > httproute-xpu.yaml
+          echo "Generated HTTPRoute configuration:"
+          cat httproute-xpu.yaml
+          kubectl apply -f httproute-xpu.yaml -n "${NAMESPACE}" \
+            | tee -a ~/pd-xpu-deployment.log
+          echo "---------------------------------------" >> ~/pd-xpu-deployment.log
+
       - name: fetch helm manifests - prepare for upload
         run: |
           for release_name in "${INFRA_RELEASE_NAME}" "${GAIE_RELEASE_NAME}" "${MS_RELEASE_NAME}"; do
