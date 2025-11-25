@@ -98,7 +98,7 @@ jobs:
               - 'docker/scripts/xpu/**'
             cpu:
               - 'docker/Dockerfile.cpu'
-              - 'docker/scripts/**'
+              - 'docker/scripts/cpu/**'
             aws:
               - 'docker/Dockerfile.aws'
       # shim to convert comma-separated platforms input into same boolean outputs as path filter
